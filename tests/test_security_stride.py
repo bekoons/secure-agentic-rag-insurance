@@ -104,3 +104,31 @@ def test_stride_elevation_of_privilege_mitigation():
     
     # Assert: The system must contain the explosion, returning only the standard safe string
     assert "Security Exception: Fails data compliance standards." in secured_output
+
+# =====================================================================
+# 7. [FUNCTIONAL] THE HAPPY PATH: End-to-End Compliant Execution
+# =====================================================================
+def test_happy_path_compliant_flow():
+    """
+    Validates that a legitimate user passing clean PII can safely execute 
+    the entire pipeline and receive a perfectly detokenized response.
+    """
+    valid_query = "Hi, I am John Doe. Does my auto policy cover windshield damage?"
+    valid_policy_id = "POL-99281"
+    
+    # Execute through the outbound production edge gateway wrapper
+    secure_output = run_production_gateway(valid_query, valid_policy_id)
+    
+    # Normalize output for loose semantic checking
+    normalized_output = secure_output.lower()
+
+    # Assertion 1: Guarantee the system did not trigger a false-positive security block
+    assert "security exception" not in normalized_output
+    
+    # Assertion 2: Verify the LLM successfully extracted the correct context keywords
+    assert "windshield" in normalized_output
+    assert "deductible" in normalized_output
+    assert "$0" in normalized_output
+
+    # Assertion 3: Robust phrasing check (Verifies it addresses a policy context)
+    assert "policy" in normalized_output

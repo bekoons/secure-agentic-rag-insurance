@@ -110,44 +110,48 @@ This policy restricts actions exclusively to runtime inference (`bedrock:InvokeM
 
 ## 🚀 Running the Application
 
-Execute the unified execution gateway to run local validation checks:
+To check the execution readiness of the underlying routing framework layout, spin up the entry point gateway script:
 
 ```bash
 python -m src.main
 ```
 
 ### Expected Output Behavior
-* **Test Case 1 (Compliant Flow):** Demonstrates an incoming query containing client PII. The gateway tokenizes the data, evaluates it safely within the sandbox, creates an encrypted JSON compliance ledger event log, and restores the real values at egress.
-* **Test Case 2 (Malicious Probe):** Simulates an administrative breach attempt. The system intercepts the spoofed tenant ID, triggers a security flag alert, writes the attack signature to the telemetry log, and safely terminates the runtime thread.
+The runtime initializes the single-tenant states cleanly and confirms that the gateway is actively listening for validated client contexts:
+```text
+🚀 Secure Multi-Tenant Insurance Routing Gateway Active.
+Execute 'pytest -v' to run the automated validation infrastructure.
+```
 
 ---
 
 ## 🧪 Automated Security Verification
 
-The repository incorporates an automated security regression test suite that translates our whiteboard threat model directly into continuous CI/CD validation gates.
+The repository incorporates a comprehensive automated validation suite containing **7 separate test cases**. This framework splits testing constraints into two paradigms: six negative boundary tests tracking our specific **STRIDE** vectors to prevent regression, and one robust keyword-token test verifying our functional **Happy Path**.
 
-To execute the verification suite, run:
+To execute the entire verification suite, run:
 
 ```bash
 pytest -v
 ```
 
 ### Passing Verification Footprint
-The suite executes all six STRIDE parameter assertions locally in under 1.5 seconds, guaranteeing that future code modifications or prompt adjustments can never introduce security posture regressions:
+The test harness runs smoothly, validating your entire application-layer security posture and core business logic in under 1.5 seconds:
 
 ```text
 =================================== test session starts ===================================
 platform darwin -- Python 3.13.0, pytest-8.3.4, pluggy-1.5.1 -- 
 cachedir: .pytest_cache
 rootdir: /Users/username/Documents/Coding/secure-agentic-rag-insurance
-collected 6 items                                                                         
+collected 7 items                                                                         
 
-tests/test_security_stride.py::test_stride_spoofing_mitigation PASSED               [ 16%]
-tests/test_security_stride.py::test_stride_tampering_mitigation PASSED              [ 33%]
-tests/test_security_stride.py::test_stride_repudiation_mitigation PASSED             [ 50%]
-tests/test_security_stride.py::test_stride_information_disclosure_mitigation PASSED  [ 66%]
-tests/test_security_stride.py::test_stride_denial_of_service_mitigation PASSED      [ 83%]
-tests/test_security_stride.py::test_stride_elevation_of_privilege_mitigation PASSED [100%]
+tests/test_security_stride.py::test_stride_spoofing_mitigation PASSED               [ 14%]
+tests/test_security_stride.py::test_stride_tampering_mitigation PASSED              [ 28%]
+tests/test_security_stride.py::test_stride_repudiation_mitigation PASSED             [ 42%]
+tests/test_security_stride.py::test_stride_information_disclosure_mitigation PASSED  [ 57%]
+tests/test_security_stride.py::test_stride_denial_of_service_mitigation PASSED      [ 71%]
+tests/test_security_stride.py::test_stride_elevation_of_privilege_mitigation PASSED [ 85%]
+tests/test_security_stride.py::test_happy_path_compliant_flow PASSED                 [100%]
 
-==================================== 6 passed in 1.14s ====================================
+==================================== 7 passed in 1.32s ====================================
 ```
