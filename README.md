@@ -53,8 +53,30 @@ Our application-layer controls map directly to Microsoft’s STRIDE threat model
 
 ### System Prerequisites
 * Python 3.13+ installed locally.
-* An active AWS Account with model access granted for **Amazon Nova** and **Titan Embeddings** in the selected deployment region (e.g., `us-east-1`).
-* An AWS IAM User or Role configured locally with `AmazonBedrockFullAccess` permissions.
+* An active AWS Account with model access granted for **Amazon Nova** and **Titan Embeddings V2** in your selected deployment region (e.g., `us-east-1`).
+
+### AWS IAM Least-Privilege Governance
+To satisfy enterprise blast-radius constraints and pass rigorous AppSec reviews, this project rejects the broad, AWS-managed `AmazonBedrockFullAccess` policy. Instead, create a **Customer-Managed IAM Policy** and attach it to your programmatic `insurance-agent-dev` user. 
+
+This policy restricts actions exclusively to runtime inference (`bedrock:InvokeModel`) and explicitly scopes resources strictly to the approved model ARNs configured in `src/config.py`:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "HardenedBedrockInvocation",
+            "Effect": "Allow",
+            "Action": [
+                "bedrock:InvokeModel"
+            ],
+            "Resource": [
+                "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0",
+                "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0"
+            ]
+        }
+    ]
+}
 
 ### Installation Steps
 
