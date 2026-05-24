@@ -22,7 +22,7 @@ The system isolates execution state, data indexes, and processing nodes into a z
 ### 1. Ingress Tokenization Proxy
 Traditional text redaction (e.g., `[REDACTED]`) and cryptographic hashing (e.g., SHA-256) degrade an LLM's attention mechanism by stripping logical context or inserting cryptographic noise. 
 
-Our `PIITokenVault` implements bidirectional token substitution. Raw identifiers are replaced at ingress with structural placeholder entities (e.g., `TOKEN_PH_8821`). The LLM maintains perfect logic tracking, and your telemetry logs (e.g., LangSmith traces) remain entirely compliant and free of PII liability. Plaintext values are safely restored at the outbound egress gateway only.
+Our `PIITokenVault` implements bidirectional token substitution. Raw identifiers are replaced at ingress with structural placeholder entities (e.g., `TOKEN_PH_8821`). The LLM maintains perfect logic tracking, and telemetry logs (e.g., LangSmith traces) remain entirely compliant and free of PII liability. Plaintext values are safely restored at the outbound egress gateway only.
 
 ### 2. Multi-Tenant Authorization Boundaries
 To defeat data cross-talk, the application enforces defensive layers:
@@ -53,7 +53,7 @@ Our application-layer controls map directly to Microsoft’s STRIDE threat model
 
 ### System Prerequisites
 * Python 3.13+ installed locally.
-* An active AWS Account with model access granted for **Amazon Nova** and **Titan Embeddings** in your selected deployment region (e.g., `us-east-1`).
+* An active AWS Account with model access granted for **Amazon Nova** and **Titan Embeddings** in the selected deployment region (e.g., `us-east-1`).
 * An AWS IAM User or Role configured locally with `AmazonBedrockFullAccess` permissions.
 
 ### Installation Steps
@@ -76,7 +76,7 @@ Our application-layer controls map directly to Microsoft’s STRIDE threat model
    ```
 
 4. **Configure Environment Variables:**
-   Create a `.env` file in the root project directory (this file is pre-excluded by your `.gitignore` profile to prevent credential leaks):
+   Create a `.env` file in the root project directory (this file is pre-excluded by the `.gitignore` profile to prevent credential leaks):
    ```env
    AWS_ACCESS_KEY_ID=your_programmatic_iam_access_key
    AWS_SECRET_ACCESS_KEY=your_programmatic_iam_secret_key
