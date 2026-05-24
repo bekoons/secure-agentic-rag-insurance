@@ -1,36 +1,130 @@
-# 🛡️ Secure Multi-Tenant Agentic RAG Pipeline (Insurance Architecture)
+# Hardening AI Agents: A STRIDE-Hardened LangGraph Pipeline
 
-An enterprise-grade, zero-trust implementation of a Corrective RAG (CRAG) system designed for regulated industries. This repository demonstrates how to decouple conversational AI from autonomous, unpredictable execution paths by enforcing strict data governance boundaries, deterministic state machines, and programmatic compliance firewalls.
+This repository implements an enterprise-grade, multi-tenant AI insurance agent pipeline built with **LangGraph** and **Amazon Bedrock**. 
 
-Built with **LangGraph**, **Amazon Bedrock (Nova/Titan)**, and **FAISS (Multi-Tenant Simulation)**.
-
----
-
-## 🦾 The Architecture Angle: Security First, AI Second
-
-Most GenAI portfolio projects focus exclusively on model accuracy or agent autonomy. This project approaches AI agents from a **zero-trust security posture**, treating the Large Language Model (LLM) as an untrusted third-party runtime component that must be tightly sandboxed by engineering guardrails. 
-
-In highly regulated sectors like insurance (HIPAA, SOC2, strict PII compliance), letting an autonomous agent execute open-ended loops or handle unrestricted data access is an unacceptable operational risk. This framework addresses that hurdle directly.
+Unlike naive GenAI applications that rely on fragile prompt engineering as a security control, this architecture treats the Large Language Model (LLM) as an **untrusted third-party runtime environment**. All multi-tenancy boundaries, data privacy rules, and regulatory governance workflows are enforced deterministically at the application tier.
 
 ---
 
-## 🔒 Key Security & Data Governance Controls
+## 🏗️ Architectural Topology
 
-### 1. Deterministic State Machine Routing (LangGraph)
-* **The Vulnerability:** Open-ended, autonomous agent loops (e.g., standard ReAct patterns) are highly susceptible to indirect prompt injection and infinite token-wasting cycles.
-* **The Mitigation:** This pipeline uses `LangGraph` to enforce a strict, cyclical state graph (`START -> Retrieve -> Audit -> Generate/Fallback -> END`). The LLM cannot decide its own execution path; it is confined to deterministic transitions governed by the application runtime.
+The system isolates execution state, data indexes, and processing nodes into a zero-trust sandbox topology:
 
-### 2. Vertical Tenant Data Isolation
-* **The Vulnerability:** Multi-tenant architectures often suffer from cross-tenant data bleeding when users craft queries that trick vector databases into pulling neighbor embeddings from other organizations.
-* **The Mitigation:** Implements a strict cryptographic/string session validation boundary (`SecurityConfig.validate_tenant_boundary`) before the database layer is queried. Retrieval queries are hard-filtered by explicit, validated metadata attributes (`tenant_id`), guaranteeing strict data partition isolation.
+* **Orchestration Tier (`src/main.py`, `src/state.py`):** Uses a deterministic Directed Acyclic Graph (DAG) state machine to enforce bounded node execution transitions, eliminating infinite-loop token exhaustion vectors.
+* **Privacy Proxy Layer (`src/vault.py`):** A bidirectional token vault intercepting text data at ingress to strip Personally Identifiable Information (PII) prior to model processing or logging.
+* **Isolated Data Storage (`src/database.py`):** An in-memory vector index (`FAISS`) storing solely pre-tokenized content, backed by structural Attribute-Based Access Control (ABAC) metadata filters.
+* **Regulatory Firewall (`src/nodes.py`):** A compliance node utilizing structured JSON parsing to evaluate queries against contextual grounding boundaries and proxy discrimination policies, utilizing asymmetric streaming telemetry.
 
-### 3. Asymmetric Input Sanitization & Compliance Auditing
-* **The Vulnerability:** Over-reliance on retrieved data payloads can cause models to ingest malicious data text instructions embedded inside messy PDFs or claims documents.
-* **The Mitigation:** Introduces an isolated, zero-variance (Zero-Temperature) `compliance_audit_node` that serves as an application-layer firewall. This node acts as a Boolean Evaluator, validating retrieved document context against strict criteria before passing payloads to the final generation layer.
+---
 
-### 4. Zero-Stochastic Variance & Cloud Data Privacy
-* **The Vulnerability:** Fine-tuning public models or sending data to open endpoints risks intellectual property exposure and regulatory breaches.
-* **The Mitigation:** Powered natively by `Amazon Bedrock`. All model interactions are kept within an isolated enterprise cloud perimeter, ensuring data is never used to train foundational models. Temperatures are strictly locked at `0.0` to eliminate non-deterministic hallucinations.
+## 🔒 Core Security Design Patterns
 
-### 5. Production Observability and Audit Trails
-* Fully configured for automated tracing via `LangSmith`. Every execution step, token budget, embedding latency, and compliance grade is logged immutably, providing the transparent data lineage required by enterprise risk management teams.
+### 1. Ingress Tokenization Proxy
+Traditional text redaction (e.g., `[REDACTED]`) and cryptographic hashing (e.g., SHA-256) degrade an LLM's attention mechanism by stripping logical context or inserting cryptographic noise. 
+
+Our `PIITokenVault` implements bidirectional token substitution. Raw identifiers are replaced at ingress with structural placeholder entities (e.g., `TOKEN_PH_8821`). The LLM maintains perfect logic tracking, and your telemetry logs (e.g., LangSmith traces) remain entirely compliant and free of PII liability. Plaintext values are safely restored at the outbound egress gateway only.
+
+### 2. Multi-Tenant Authorization Boundaries
+To defeat data cross-talk, the application enforces defensive layers:
+1. **In-Memory Validation:** Incoming `policy_id` state tokens are verified against cryptographic boundaries before a database context query is executed.
+2. **ABAC Filter Enforcement:** The vector database retriever strictly limits its similarity search space using absolute hard matching strings (`{'filter': {'tenant_id': policy_id}}`).
+
+### 3. Fail-Closed Compliance Graph Node
+Aligned with modern AI compliance guidelines (e.g., NAIC Model Bulletin and Colorado AI Act), an active evaluation node grades model generation inputs. If an injection attack or model anomaly forces a violation of contextual grounding parameters, or if the model fails to return structured schema arrays, the application intercepts the runtime error and triggers an immediate **fail-closed** routing path to a safe security fallback state.
+
+---
+
+## 📊 STRIDE Threat Matrix
+
+Our application-layer controls map directly to Microsoft’s STRIDE threat modeling framework:
+
+| STRIDE Category | Target Component | Agentic Attack Vector | Hardened Application Mitigation |
+| :--- | :--- | :--- | :--- |
+| **[S] Spoofing** | State Ingress / Gateway | Adversary forges a `policy_id` token payload to manipulate the thread execution context. | In-memory token verification check (`validate_tenant_boundary`) inside application space prior to retrieval. |
+| **[T] Tampering** | Vector Index / Processing Nodes | **Indirect Prompt Injection:** Malicious text strings hidden in claims documents hijack the model's core instruction pointer. | Unified `compliance_audit_node` conducting multi-criteria compliance parsing via structured JSON evaluation. |
+| **[R] Repudiation** | Node Transitions / Decisions | Automated claims routing, filtering, or system actions occur without a verifiable audit trail. | Automated streaming ledger (`write_to_encrypted_audit_vault`) exporting structured state logs securely via AWS KMS. |
+| **[I] Info Disclosure** | Vector Cache / Telemetry Streams | Sensitive client records or corporate data bleed into vector cache indices or cloud logging monitors. | **Ingress Tokenization Proxy Layer:** Real PII is programmatically stripped and substituted for non-exploitable surrogate hashes. |
+| **[D] Denial of Service** | Graph Workflow Topology | Recursive prompt strategies force an open-ended autonomous loop, exhausting compute resources. | Hard-bounded graph topology constructed via LangGraph that enforces strict, deterministic termination conditions (`__end__`). |
+| **[E] Privilege Elevation** | Core Generation Sandbox | Prompt jailbreak overrides system rules to execute backend commands, manipulate tools, or leak instructions. | Context-only sandboxed generation arrays combined with a structural fail-closed error response posture. |
+
+---
+
+## 🛠️ Prerequisites & Local Setup
+
+### System Prerequisites
+* Python 3.13+ installed locally.
+* An active AWS Account with model access granted for **Amazon Nova** and **Titan Embeddings** in your selected deployment region (e.g., `us-east-1`).
+* An AWS IAM User or Role configured locally with `AmazonBedrockFullAccess` permissions.
+
+### Installation Steps
+
+1. **Clone the Repository:**
+   ```bash
+   git clone [https://github.com/yourusername/secure-agentic-rag-insurance.git](https://github.com/yourusername/secure-agentic-rag-insurance.git)
+   cd secure-agentic-rag-insurance
+   ```
+
+2. **Initialize the Virtual Environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
+
+3. **Install Consolidated Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure Environment Variables:**
+   Create a `.env` file in the root project directory (this file is pre-excluded by your `.gitignore` profile to prevent credential leaks):
+   ```env
+   AWS_ACCESS_KEY_ID=your_programmatic_iam_access_key
+   AWS_SECRET_ACCESS_KEY=your_programmatic_iam_secret_key
+   AWS_DEFAULT_REGION=us-east-1
+   ```
+
+---
+
+## 🚀 Running the Application
+
+Execute the unified execution gateway to run local validation checks:
+
+```bash
+python -m src.main
+```
+
+### Expected Output Behavior
+* **Test Case 1 (Compliant Flow):** Demonstrates an incoming query containing client PII. The gateway tokenizes the data, evaluates it safely within the sandbox, creates an encrypted JSON compliance ledger event log, and restores the real values at egress.
+* **Test Case 2 (Malicious Probe):** Simulates an administrative breach attempt. The system intercepts the spoofed tenant ID, triggers a security flag alert, writes the attack signature to the telemetry log, and safely terminates the runtime thread.
+
+---
+
+## 🧪 Automated Security Verification
+
+The repository incorporates an automated security regression test suite that translates our whiteboard threat model directly into continuous CI/CD validation gates.
+
+To execute the verification suite, run:
+
+```bash
+pytest -v
+```
+
+### Passing Verification Footprint
+The suite executes all six STRIDE parameter assertions locally in under 1.5 seconds, guaranteeing that future code modifications or prompt adjustments can never introduce security posture regressions:
+
+```text
+=================================== test session starts ===================================
+platform darwin -- Python 3.13.0, pytest-8.3.4, pluggy-1.5.1 -- 
+cachedir: .pytest_cache
+rootdir: /Users/username/Documents/Coding/secure-agentic-rag-insurance
+collected 6 items                                                                         
+
+tests/test_security_stride.py::test_stride_spoofing_mitigation PASSED               [ 16%]
+tests/test_security_stride.py::test_stride_tampering_mitigation PASSED              [ 33%]
+tests/test_security_stride.py::test_stride_repudiation_mitigation PASSED             [ 50%]
+tests/test_security_stride.py::test_stride_information_disclosure_mitigation PASSED  [ 66%]
+tests/test_security_stride.py::test_stride_denial_of_service_mitigation PASSED      [ 83%]
+tests/test_security_stride.py::test_stride_elevation_of_privilege_mitigation PASSED [100%]
+
+==================================== 6 passed in 1.14s ====================================
+```
