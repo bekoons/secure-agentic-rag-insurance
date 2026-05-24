@@ -76,7 +76,8 @@ This policy restricts actions exclusively to runtime inference (`bedrock:InvokeM
             ]
         }
     ]
-}```
+}
+```
 
 ### Installation Steps
 
