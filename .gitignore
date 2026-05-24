@@ -1,0 +1,10 @@
+# Local virtual environment files
+venv/
+.venv/
+
+# Local Environment Secret Vaults (CRITICAL)
+.env
+
+# Python caching files
+__pycache__/
+*.pyc
