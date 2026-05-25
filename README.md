@@ -101,9 +101,20 @@ This policy restricts actions exclusively to runtime inference (`bedrock:InvokeM
 4. **Configure Environment Variables:**
    Create a `.env` file in the root project directory (this file is pre-excluded by the `.gitignore` profile to prevent credential leaks):
    ```env
-   AWS_ACCESS_KEY_ID=your_programmatic_iam_access_key
-   AWS_SECRET_ACCESS_KEY=your_programmatic_iam_secret_key
-   AWS_DEFAULT_REGION=us-east-1
+    # =====================================================================
+    # AWS BEDROCK CREDENTIALS
+    # =====================================================================
+    AWS_ACCESS_KEY_ID=""
+    AWS_SECRET_ACCESS_KEY=""
+    AWS_DEFAULT_REGION=""
+
+    # =====================================================================
+    # LANGSMITH OBSERVABILITY TELEMETRY
+    # =====================================================================
+    LANGSMITH_TRACING="true"
+    LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+    LANGSMITH_API_KEY=""
+    LANGSMITH_PROJECT=""
    ```
 
 ---
