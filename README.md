@@ -127,7 +127,7 @@ Execute 'pytest -v' to run the automated validation infrastructure.
 
 ## 🧪 Automated Security Verification
 
-The repository incorporates a comprehensive automated validation suite containing **7 separate test cases**. This framework splits testing constraints into two paradigms: six negative boundary tests tracking our specific **STRIDE** vectors to prevent regression, and one robust keyword-token test verifying our functional **Happy Path**.
+The repository incorporates an automated validation suite containing **7 separate test cases**. This framework splits testing constraints into two paradigms: six negative boundary tests tracking our specific **STRIDE** vectors to prevent regression, and one robust keyword-token test verifying our functional **Happy Path**.
 
 To execute the entire verification suite, run:
 
@@ -155,3 +155,29 @@ tests/test_security_stride.py::test_happy_path_compliant_flow PASSED            
 
 ==================================== 7 passed in 1.32s ====================================
 ```
+
+## ⚠️ Operational Caveats & Production Gap Analysis
+
+This repository serves as a localized Proof of Concept (PoC) demonstrating application-layer security boundaries. To deploy this architecture into a distributed, production-grade enterprise cloud network, the following operational gaps and unaddressed threat vectors must be resolved:
+
+### 1. In-Memory State and Storage Ephemerality
+* **The PoC State:** Both the `PIITokenVault` proxy dictionary and the `FAISS` vector database index operate entirely within local ephemeral process memory (`RAM`).
+* **The Production Shift:** In a multi-node or serverless auto-scaling cluster (e.g., AWS ECS or AWS Lambda), in-memory state will drift and fragment across containers. Production deployments must decouple storage from compute:
+  * Replace the local token dictionary with a centralized, low-latency key-value engine like **Redis Enterprise** or a dedicated hardware security module (HSM) system like **HashiCorp Vault / AWS Secrets Manager**.
+  * Migrate from local FAISS arrays to an enterprise, single-tenant filtered vector cluster like **Amazon OpenSearch Service** or **pgvector on Amazon RDS**.
+
+### 2. Mocked Identification vs. Cryptographic Authn/Authz
+* **The PoC State:** The tenant boundary check (`validate_tenant_boundary`) relies on a flat string match against a hardcoded lookup map passed via unauthenticated state dictionaries.
+* **The Production Shift:** Relying on the client application to supply its own trusted user context invites parameters-tampering vulnerabilities. The pipeline gateway must interface with an Identity Provider (IdP) via **OAuth 2.0 / OIDC** (e.g., **Amazon Cognito** or **Auth0**). The execution entry point should expect a cryptographically signed **JSON Web Token (JWT)**, parsing the tenant attributes securely from the verified signature payload.
+
+### 3. Telemetry and Immutable Audit Trails
+* **The PoC State:** The non-repudiation ledger (`write_to_encrypted_audit_vault`) is simulated via structured console output streams (`stdout`).
+* **The Production Shift:** Audit logs generated within the app tier must be treated as highly sensitive data targets susceptible to tampering. Production pipelines must stream these event blocks directly to an external logging framework (e.g., **Amazon Kinesis Firehose** routing to an **Amazon S3** bucket). The target bucket must be configured with a **Write-Once-Read-Many (WORM)** retention lock and protected with envelope encryption managed via explicit **AWS KMS** key policies to guarantee administrative non-repudiation.
+
+### 4. Recursive Input/Output Jailbreak Vectors (Meta-Injections)
+* **The PoC State:** The system relies on a secondary LLM invocation layer within the `compliance_audit_node` to score prompt integrity.
+* **The Production Shift:** While highly effective against standard indirect prompt injections, this patterns introduces a "recursive jailbreak" vulnerability, where a sophisticated adversary structures an exploit payload designed to bypass or jailbreak the *compliance model itself*. Enterprise architectures must deploy layered defense-in-depth filters, incorporating native input-length filtering, heuristic pattern analyzers, and dedicated model firewalls such as **Amazon Bedrock Guardrails** or standalone classifiers (e.g., Meta's Llama Guard) operating outside the primary orchestration graph.
+
+### 5. Application-Layer Distributed Denial of Service (DDoS)
+* **The PoC State:** The LangGraph topology successfully mitigates internal, infinite node processing loops via deterministic execution paths. It does *not*, however, protect the pipeline against external billing attacks.
+* **The Production Shift:** An adversary could flood the API Gateway with millions of valid, well-formed requests, rapidly draining corporate API token budgets and overwhelming backend processing capabilities. A production gateway must be shielded at the cloud edge utilizing **AWS WAF** (Web Application Firewall) to enforce strict IP rate-limiting, geo-fencing, and token-bucket request throttling prior to routing payloads downstream to the agentic orchestration container.
