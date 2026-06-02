@@ -1,5 +1,12 @@
 # Hardening AI Agents: A STRIDE-Hardened LangGraph Pipeline
 
+## 📖 Full Technical Writeup
+
+For a deep-dive breakdown of the architectural reasoning, threat modeling lifecycle decisions, and continuous validation methodology backing this implementation, read the long-form analysis here:
+
+👉 **[docs/writeup.md](docs/writeup.md)**
+---
+
 This repository implements an enterprise-grade, multi-tenant AI insurance agent pipeline built with **LangGraph** and **Amazon Bedrock**. 
 
 Unlike naive GenAI applications that rely on fragile prompt engineering as a security control, this architecture treats the Large Language Model (LLM) as an **untrusted third-party runtime environment**. All multi-tenancy boundaries, data privacy rules, and regulatory governance workflows are enforced deterministically at the application tier.
@@ -53,7 +60,7 @@ Our application-layer controls map directly to Microsoft’s STRIDE threat model
 
 ### System Prerequisites
 * Python 3.13+ installed locally.
-* An active AWS Account with model access granted for **Amazon Nova** and **Titan Embeddings V2** in your selected deployment region (e.g., `us-east-1`).
+* An active AWS Account with model access granted for **Amazon Nova Micro** and **Titan Embeddings V2** in your selected deployment region (e.g., `us-east-1`).
 
 ### AWS IAM Least-Privilege Governance
 To satisfy enterprise blast-radius constraints and pass rigorous AppSec reviews, this project rejects the broad, AWS-managed `AmazonBedrockFullAccess` policy. Instead, create a **Customer-Managed IAM Policy** and attach it to your programmatic `insurance-agent-dev` user. 
@@ -101,20 +108,20 @@ This policy restricts actions exclusively to runtime inference (`bedrock:InvokeM
 4. **Configure Environment Variables:**
    Create a `.env` file in the root project directory (this file is pre-excluded by the `.gitignore` profile to prevent credential leaks):
    ```env
-    # =====================================================================
-    # AWS BEDROCK CREDENTIALS
-    # =====================================================================
-    AWS_ACCESS_KEY_ID=""
-    AWS_SECRET_ACCESS_KEY=""
-    AWS_DEFAULT_REGION=""
+   # =====================================================================
+   # AWS BEDROCK CREDENTIALS
+   # =====================================================================
+   AWS_ACCESS_KEY_ID="your_hardened_iam_access_key"
+   AWS_SECRET_ACCESS_KEY="your_hardened_iam_secret_key"
+   AWS_DEFAULT_REGION="us-east-1"
 
-    # =====================================================================
-    # LANGSMITH OBSERVABILITY TELEMETRY
-    # =====================================================================
-    LANGSMITH_TRACING="true"
-    LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
-    LANGSMITH_API_KEY=""
-    LANGSMITH_PROJECT=""
+   # =====================================================================
+   # LANGSMITH OBSERVABILITY TELEMETRY
+   # =====================================================================
+   LANGSMITH_TRACING="true"
+   LANGSMITH_ENDPOINT="[https://api.smith.langchain.com](https://api.smith.langchain.com)"
+   LANGSMITH_API_KEY="your_langsmith_api_key"
+   LANGSMITH_PROJECT="your_project_name"
    ```
 
 ---
@@ -167,6 +174,8 @@ tests/test_security_stride.py::test_happy_path_compliant_flow PASSED            
 ==================================== 7 passed in 1.32s ====================================
 ```
 
+---
+
 ## ⚠️ Operational Caveats & Production Gap Analysis
 
 This repository serves as a localized Proof of Concept (PoC) demonstrating application-layer security boundaries. To deploy this architecture into a distributed, production-grade enterprise cloud network, the following operational gaps and unaddressed threat vectors must be resolved:
@@ -190,5 +199,6 @@ This repository serves as a localized Proof of Concept (PoC) demonstrating appli
 * **The Production Shift:** While highly effective against standard indirect prompt injections, this patterns introduces a "recursive jailbreak" vulnerability, where a sophisticated adversary structures an exploit payload designed to bypass or jailbreak the *compliance model itself*. Enterprise architectures must deploy layered defense-in-depth filters, incorporating native input-length filtering, heuristic pattern analyzers, and dedicated model firewalls such as **Amazon Bedrock Guardrails** or standalone classifiers (e.g., Meta's Llama Guard) operating outside the primary orchestration graph.
 
 ### 5. Application-Layer Distributed Denial of Service (DDoS)
-* **The PoC State:** The LangGraph topology successfully mitigates internal, infinite node processing loops via deterministic execution paths. It does *not*, however, protect the pipeline against external billing attacks.
+* **The Gap:** The LangGraph topology successfully mitigates internal, infinite node processing loops via deterministic execution paths. It does *not*, however, protect the pipeline against external billing attacks.
 * **The Production Shift:** An adversary could flood the API Gateway with millions of valid, well-formed requests, rapidly draining corporate API token budgets and overwhelming backend processing capabilities. A production gateway must be shielded at the cloud edge utilizing **AWS WAF** (Web Application Firewall) to enforce strict IP rate-limiting, geo-fencing, and token-bucket request throttling prior to routing payloads downstream to the agentic orchestration container.
+
