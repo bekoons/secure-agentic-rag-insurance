@@ -43,7 +43,7 @@ To enforce the **Principle of Least Privilege (PoLP)**, we attach a custom scope
             ],
             "Resource": [
                 "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0",
-                "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0"
+                "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0"
             ]
         }
     ]
